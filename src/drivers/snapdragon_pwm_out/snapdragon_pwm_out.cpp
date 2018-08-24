@@ -402,9 +402,7 @@ void task_main(int argc, char *argv[])
 		_outputs.timestamp = hrt_absolute_time();
 
 		/* do  mixing for virtual control group */
-		_outputs.noutputs = _mixer->mix(_outputs.output,
-						_outputs.NUM_ACTUATOR_OUTPUTS,
-						NULL);
+		_outputs.noutputs = _mixer->mix(_outputs.output, _outputs.NUM_ACTUATOR_OUTPUTS);
 
 		//set max, min and disarmed pwm
 		const uint16_t reverse_mask = 0;
@@ -426,7 +424,7 @@ void task_main(int argc, char *argv[])
 			       min_pwm, max_pwm, _outputs.output, pwm, &_pwm_limit);
 
 		// send and publish outputs
-		if (_armed.lockdown || timeout) {
+		if (_armed.lockdown || _armed.manual_lockdown || timeout) {
 			send_outputs_pwm(disarmed_pwm);
 
 		} else {
@@ -577,4 +575,3 @@ int snapdragon_pwm_out_main(int argc, char *argv[])
 
 	return 0;
 }
-

@@ -18,7 +18,7 @@ const uint8_t BMI160::_checked_registers[BMI160_NUM_CHECKED_REGISTERS] = {    BM
 									      BMIREG_NV_CONF
 									 };
 
-BMI160::BMI160(int bus, const char *path_accel, const char *path_gyro, spi_dev_e device, enum Rotation rotation) :
+BMI160::BMI160(int bus, const char *path_accel, const char *path_gyro, uint32_t device, enum Rotation rotation) :
 	SPI("BMI160", path_accel, bus, device, SPIDEV_MODE3, BMI160_BUS_SPEED),
 	_gyro(new BMI160_gyro(this, path_gyro)),
 	_whoami(0),
@@ -303,10 +303,6 @@ BMI160::accel_set_sample_rate(float frequency)
 	if (frequency <= 25 / 32) {
 		setbits |= BMI_ACCEL_RATE_25_32;
 		_accel_sample_rate = 25 / 32;
-
-	} else if (frequency <= 25 / 16) {
-		setbits |= BMI_ACCEL_RATE_25_16;
-		_accel_sample_rate = 25 / 16;
 
 	} else if (frequency <= 25 / 16) {
 		setbits |= BMI_ACCEL_RATE_25_16;
@@ -637,12 +633,10 @@ BMI160::ioctl(struct file *filp, int cmd, unsigned long arg)
 			case SENSOR_POLLRATE_DEFAULT:
 				if (BMI160_GYRO_DEFAULT_RATE > BMI160_ACCEL_DEFAULT_RATE) {
 					return ioctl(filp, SENSORIOCSPOLLRATE, BMI160_GYRO_DEFAULT_RATE);
-					warnx("GYROOOOOOOOO");
 
 				} else {
 					return ioctl(filp, SENSORIOCSPOLLRATE,
 						     BMI160_ACCEL_DEFAULT_RATE); //Polling at the highest frequency. We may get duplicate values on the sensors
-					warnx("ACCELLLLLLLLLLLL");
 				}
 
 			/* adjust to a legal polling interval in Hz */
@@ -1133,7 +1127,7 @@ BMI160::measure()
 
 	check_registers();
 
-	if ((!(status && (0x80)))  && (!(status && (0x04)))) {
+	if ((!(status & (0x80))) && (!(status & (0x04)))) {
 		perf_end(_sample_perf);
 		perf_count(_duplicates);
 		_got_duplicate = true;
@@ -1292,7 +1286,7 @@ BMI160::measure()
 	grb.temperature = _last_temperature;
 
 	/* return device ID */
-	grb.device_id = _gyro->_device_id.devid;;
+	grb.device_id = _gyro->_device_id.devid;
 
 	_accel_reports->force(&arb);
 	_gyro_reports->force(&grb);

@@ -31,6 +31,8 @@
  *
  ****************************************************************************/
 
+#pragma once
+
 #include <stdint.h>
 
 #include <systemlib/battery.h>
@@ -67,7 +69,7 @@ public:
 	int set_channel(uint8_t channel);
 	int set_address(uint64_t addr);
 
-	int is_good(int i) { return _params_ack != 0; }
+	int is_good(int i) { return _params_ack[i] != 0; }
 
 	int pktrate;
 	int nullrate;

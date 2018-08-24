@@ -1,6 +1,6 @@
 include(posix/px4_impl_posix)
 
-set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-linux-gnueabihf-raspbian.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-linux-gnueabihf.cmake)
 
 add_definitions(
 	-D__PX4_POSIX_BEBOP
@@ -8,19 +8,13 @@ add_definitions(
 	-D__DF_BEBOP # Define needed DriverFramework
 	)
 
-set(CMAKE_PROGRAM_PATH
-	"${RPI_TOOLCHAIN_DIR}/gcc-linaro-arm-linux-gnueabihf-raspbian/bin"
-	${CMAKE_PROGRAM_PATH}
-	)
-
 set(config_module_list
-
-  # examples/px4_simple_app
 
 	#
 	# Board support modules
 	#
 	drivers/device
+	drivers/linux_sbus
 	modules/sensors
 	platforms/posix/drivers/df_ms5607_wrapper
 	platforms/posix/drivers/df_mpu6050_wrapper
@@ -62,7 +56,7 @@ set(config_module_list
 	modules/sdlog2
 	modules/logger
 	modules/commander
-	modules/param
+	modules/systemlib/param
 	modules/systemlib
 	modules/systemlib/mixer
 	modules/uORB
@@ -86,7 +80,6 @@ set(config_module_list
 	lib/ecl
 	lib/geo_lookup
 	lib/launchdetection
-	lib/external_lgpl
 	lib/conversion
 	lib/terrain_estimation
 	lib/runway_takeoff

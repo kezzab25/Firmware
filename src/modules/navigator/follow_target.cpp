@@ -100,8 +100,6 @@ void FollowTarget::on_inactive()
 
 void FollowTarget::on_activation()
 {
-	updateParams();
-
 	_follow_offset = _param_tracking_dist.get() < 1.0F ? 1.0F : _param_tracking_dist.get();
 
 	_responsiveness = math::constrain((float) _param_tracking_resp.get(), .1F, 1.0F);
@@ -181,26 +179,18 @@ void FollowTarget::on_active()
 		dt_ms = ((_current_target_motion.timestamp - _previous_target_motion.timestamp) / 1000);
 
 		// ignore a small dt
-
 		if (dt_ms > 10.0F) {
-
-			math::Vector<3> prev_position_delta = _target_position_delta;
-
 			// get last gps known reference for target
-
 			map_projection_init(&target_ref, _previous_target_motion.lat, _previous_target_motion.lon);
 
 			// calculate distance the target has moved
-
 			map_projection_project(&target_ref, _current_target_motion.lat, _current_target_motion.lon,
 					       &(_target_position_delta(0)), &(_target_position_delta(1)));
 
 			// update the average velocity of the target based on the position
-
 			_est_target_vel = _target_position_delta / (dt_ms / 1000.0f);
 
 			// if the target is moving add an offset and rotation
-
 			if (_est_target_vel.length() > .5F) {
 				_target_position_offset = _rot_matrix * _est_target_vel.normalized() * _follow_offset;
 			}
@@ -347,6 +337,8 @@ void FollowTarget::on_active()
 			_follow_target_state = WAIT_FOR_TARGET_POSITION;
 		}
 
+	/* FALLTHROUGH */
+
 	case WAIT_FOR_TARGET_POSITION: {
 
 			if (is_mission_item_reached() && target_velocity_valid()) {
@@ -369,7 +361,8 @@ void FollowTarget::update_position_sp(bool use_velocity, bool use_position, floa
 
 	pos_sp_triplet->previous.valid = use_position;
 	pos_sp_triplet->previous = pos_sp_triplet->current;
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+	mission_apply_limitation(_mission_item);
+	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET;
 	pos_sp_triplet->current.position_valid = use_position;
 	pos_sp_triplet->current.velocity_valid = use_velocity;
@@ -406,4 +399,38 @@ bool FollowTarget::target_position_valid()
 {
 	// need at least 1 continuous data points for position estimate
 	return (_target_updates >= 1);
+}
+
+void
+FollowTarget::set_follow_target_item(struct mission_item_s *item, float min_clearance, follow_target_s &target,
+				     float yaw)
+{
+	if (_navigator->get_land_detected()->landed) {
+		/* landed, don't takeoff, but switch to IDLE mode */
+		item->nav_cmd = NAV_CMD_IDLE;
+
+	} else {
+
+		item->nav_cmd = NAV_CMD_DO_FOLLOW_REPOSITION;
+
+		/* use current target position */
+		item->lat = target.lat;
+		item->lon = target.lon;
+		item->altitude = _navigator->get_home_position()->alt;
+
+		if (min_clearance > 8.0f) {
+			item->altitude += min_clearance;
+
+		} else {
+			item->altitude += 8.0f; // if min clearance is bad set it to 8.0 meters (well above the average height of a person)
+		}
+	}
+
+	item->altitude_is_relative = false;
+	item->yaw = yaw;
+	item->loiter_radius = _navigator->get_loiter_radius();
+	item->acceptance_radius = _navigator->get_acceptance_radius();
+	item->time_inside = 0.0f;
+	item->autocontinue = false;
+	item->origin = ORIGIN_ONBOARD;
 }

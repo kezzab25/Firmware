@@ -52,7 +52,7 @@
 #include <debug.h>
 #include <errno.h>
 
-#include <nuttx/arch.h>
+#include "platform/cxxinitialize.h"
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/i2c/i2c_master.h>
@@ -66,10 +66,11 @@
 #include <arch/board/board.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_led.h>
+#include <drivers/drv_board_led.h>
 
 #include <systemlib/cpuload.h>
 #include <systemlib/perf_counter.h>
+#include <systemlib/param/param.h>
 
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 #include <systemlib/systemlib.h>
@@ -194,6 +195,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
 
+	param_init();
+
 	/* configure the DMA allocator */
 	dma_alloc_init();
 
@@ -261,7 +264,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETFREQUENCY(spi4, 10 * 1000 * 1000);
 	SPI_SETBITS(spi4, 8);
 	SPI_SETMODE(spi4, SPIDEV_MODE0);
-	SPI_SELECT(spi4, SPIDEV_FLASH, false);
+	SPI_SELECT(spi4, SPIDEV_FLASH(0), false);
 	message("[boot] Initialized SPI port 4 (FRAM)\n");
 
 	return OK;
